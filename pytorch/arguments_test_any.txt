@@ -1,12 +1,11 @@
 --encoder densenet161_bts
---data_path /data1/hashimoto/dataset/kitti_dataset/
+--data_path ./
 --dataset kitti
---filenames_file ../train_test_inputs/eigen_test_files_with_gt.txt
+--filenames_file ../train_test_inputs/any_test_files_with_gt.txt
 --model_name bts_eigen_v2_pytorch_densenet161_12_5
 --checkpoint_path ./models/bts_eigen_v2_pytorch_12_5/model-41600-best_abs_rel_0.05850
---input_height 352
---input_width 1216
+--input_height 466
+--input_width 492
 --max_depth 80
---do_kb_crop
 
 --save_lpg

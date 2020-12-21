@@ -35,7 +35,7 @@ import matplotlib.cm
 import threading
 from tqdm import tqdm
 
-from bts import BtsModel
+from bts3 import BtsModel
 from bts_dataloader import *
 
 
@@ -120,7 +120,7 @@ else:
     args = parser.parse_args()
 
 if args.mode == 'train' and not args.checkpoint_path:
-    from bts import *
+    from bts3 import *
 
 elif args.mode == 'train' and args.checkpoint_path:
     model_dir = os.path.dirname(args.checkpoint_path)
@@ -259,7 +259,7 @@ def online_eval(model, dataloader_eval, gpu, ngpus):
                 # print('Invalid depth. continue.')
                 continue
 
-            _, _, _, _, pred_depth = model(image, focal)
+            pred_depth = model(image, focal)
 
             pred_depth = pred_depth.cpu().numpy().squeeze()
             gt_depth = gt_depth.cpu().numpy().squeeze()
@@ -335,7 +335,7 @@ def main_worker(gpu, ngpus_per_node, args):
     # Create model
     model = BtsModel(args)
     model.train()
-    model.decoder.apply(weights_init_xavier)
+    #model.decoder.apply(weights_init_xavier)
     set_misc(model)
 
     num_params = sum([np.prod(p.size()) for p in model.parameters()])
@@ -368,8 +368,7 @@ def main_worker(gpu, ngpus_per_node, args):
     best_eval_steps = np.zeros(9, dtype=np.int32)
 
     # Training parameters
-    optimizer = torch.optim.AdamW([{'params': model.module.encoder.parameters(), 'weight_decay': args.weight_decay},
-                                   {'params': model.module.decoder.parameters(), 'weight_decay': 0}],
+    optimizer = torch.optim.AdamW([{'params': model.parameters(), 'weight_decay': args.weight_decay}],
                                   lr=args.learning_rate, eps=args.adam_eps)
 
     model_just_loaded = False
@@ -444,13 +443,13 @@ def main_worker(gpu, ngpus_per_node, args):
             focal = torch.autograd.Variable(sample_batched['focal'].cuda(args.gpu, non_blocking=True))
             depth_gt = torch.autograd.Variable(sample_batched['depth'].cuda(args.gpu, non_blocking=True))
 
-            lpg8x8, lpg4x4, lpg2x2, reduc1x1, depth_est = model(image, focal)
+            depth_est = model(image, focal)
+            #lpg8x8, lpg4x4, lpg2x2, reduc1x1, depth_est = model(image, focal)
 
             if args.dataset == 'nyu':
                 mask = depth_gt > 0.1
             else:
                 mask = depth_gt > 1.0
-
             loss = silog_criterion.forward(depth_est, depth_gt, mask.to(torch.bool))
             loss.backward()
             for param_group in optimizer.param_groups:
@@ -488,10 +487,10 @@ def main_worker(gpu, ngpus_per_node, args):
                     for i in range(num_log_images):
                         writer.add_image('depth_gt/image/{}'.format(i), normalize_result(1/depth_gt[i, :, :, :].data), global_step)
                         writer.add_image('depth_est/image/{}'.format(i), normalize_result(1/depth_est[i, :, :, :].data), global_step)
-                        writer.add_image('reduc1x1/image/{}'.format(i), normalize_result(1/reduc1x1[i, :, :, :].data), global_step)
-                        writer.add_image('lpg2x2/image/{}'.format(i), normalize_result(1/lpg2x2[i, :, :, :].data), global_step)
-                        writer.add_image('lpg4x4/image/{}'.format(i), normalize_result(1/lpg4x4[i, :, :, :].data), global_step)
-                        writer.add_image('lpg8x8/image/{}'.format(i), normalize_result(1/lpg8x8[i, :, :, :].data), global_step)
+                        # writer.add_image('reduc1x1/image/{}'.format(i), normalize_result(1/reduc1x1[i, :, :, :].data), global_step)
+                        # writer.add_image('lpg2x2/image/{}'.format(i), normalize_result(1/lpg2x2[i, :, :, :].data), global_step)
+                        # writer.add_image('lpg4x4/image/{}'.format(i), normalize_result(1/lpg4x4[i, :, :, :].data), global_step)
+                        # writer.add_image('lpg8x8/image/{}'.format(i), normalize_result(1/lpg8x8[i, :, :, :].data), global_step)
                         writer.add_image('image/image/{}'.format(i), inv_normalize(image[i, :, :, :]).data, global_step)
                     writer.flush()
 
@@ -564,7 +563,7 @@ def main():
 
     if args.checkpoint_path == '':
         model_out_path = args.log_directory + '/' + args.model_name + '/' + model_filename
-        command = 'cp bts.py ' + model_out_path
+        command = 'cp bts3.py ' + model_out_path
         os.system(command)
         aux_out_path = args.log_directory + '/' + args.model_name + '/.'
         command = 'cp bts_main.py ' + aux_out_path

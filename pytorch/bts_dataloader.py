@@ -100,7 +100,7 @@ class DataLoadPreprocess(Dataset):
                 image_path = os.path.join(self.args.data_path, "./" + sample_path.split()[3])
                 depth_path = os.path.join(self.args.gt_path, "./" + sample_path.split()[4])
             else:
-                image_path = os.path.join(self.args.data_path, "./" + sample_path.split()[0])
+                image_path = os.path.join(self.args.data_path,  "./"+ sample_path.split()[0])
                 depth_path = os.path.join(self.args.gt_path, "./" + sample_path.split()[1])
     
             image = Image.open(image_path)
@@ -160,10 +160,12 @@ class DataLoadPreprocess(Dataset):
                 if has_valid_depth:
                     depth_gt = np.asarray(depth_gt, dtype=np.float32)
                     depth_gt = np.expand_dims(depth_gt, axis=2)
+                    #image, depth_gt = self.random_crop(image, depth_gt, self.args.input_height, self.args.input_width)
                     if self.args.dataset == 'nyu':
                         depth_gt = depth_gt / 1000.0
                     else:
                         depth_gt = depth_gt / 256.0
+
 
             if self.args.do_kb_crop is True:
                 height = image.shape[0]
@@ -177,6 +179,7 @@ class DataLoadPreprocess(Dataset):
             if self.mode == 'online_eval':
                 sample = {'image': image, 'depth': depth_gt, 'focal': focal, 'has_valid_depth': has_valid_depth}
             else:
+                #image = image[0:384, 0:640, :]
                 sample = {'image': image, 'focal': focal}
         
         if self.transform:
