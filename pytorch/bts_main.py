@@ -35,7 +35,7 @@ import matplotlib.cm
 import threading
 from tqdm import tqdm
 
-from bts3 import BtsModel
+from bts4 import BtsModel
 from bts_dataloader import *
 
 
@@ -120,7 +120,7 @@ else:
     args = parser.parse_args()
 
 if args.mode == 'train' and not args.checkpoint_path:
-    from bts3 import *
+    from bts4 import *
 
 elif args.mode == 'train' and args.checkpoint_path:
     model_dir = os.path.dirname(args.checkpoint_path)
@@ -563,7 +563,7 @@ def main():
 
     if args.checkpoint_path == '':
         model_out_path = args.log_directory + '/' + args.model_name + '/' + model_filename
-        command = 'cp bts3.py ' + model_out_path
+        command = 'cp bts4.py ' + model_out_path
         os.system(command)
         aux_out_path = args.log_directory + '/' + args.model_name + '/.'
         command = 'cp bts_main.py ' + aux_out_path
