@@ -1,5 +1,5 @@
 --mode train
---model_name bts_nyu_v2_pytorch_2020_12_22_srn_aspp_outC3_loss1_dense
+--model_name bts_nyu_v2_pytorch_2020_12_26_srn_noaspp
 --encoder densenet121_bts
 --dataset nyu
 --data_path /data1/hashimoto/dataset/nyu_depth_v2/sync/

@@ -44,6 +44,7 @@ def bn_init_as_tf(m):
 
 def weights_init_xavier(m):
     if isinstance(m, nn.Conv2d):
+        #print(m.name)
         torch.nn.init.xavier_uniform_(m.weight)
         if m.bias is not None:
             torch.nn.init.zeros_(m.bias)
@@ -58,22 +59,22 @@ class silog_loss(nn.Module):
         d = torch.log(depth_est[mask]) - torch.log(depth_gt[mask])
         return torch.sqrt((d ** 2).mean() - self.variance_focus * (d.mean() ** 2)) * 10.0
 
-class atrous_conv(nn.Sequential):
-    def __init__(self, in_channels, out_channels, dilation, apply_bn_first=True):
-        super(atrous_conv, self).__init__()
-        self.atrous_conv = torch.nn.Sequential()
-        if apply_bn_first:
-            self.atrous_conv.add_module('first_bn', nn.BatchNorm2d(in_channels, momentum=0.01, affine=True, track_running_stats=True, eps=1.1e-5))
+# class atrous_conv(nn.Sequential):
+#     def __init__(self, in_channels, out_channels, dilation, apply_bn_first=True):
+#         super(atrous_conv, self).__init__()
+#         self.atrous_conv = torch.nn.Sequential()
+#         if apply_bn_first:
+#             self.atrous_conv.add_module('first_bn', nn.BatchNorm2d(in_channels, momentum=0.01, affine=True, track_running_stats=True, eps=1.1e-5))
         
-        self.atrous_conv.add_module('aconv_sequence', nn.Sequential(nn.ReLU(),
-                                                                    nn.Conv2d(in_channels=in_channels, out_channels=out_channels*2, bias=False, kernel_size=1, stride=1, padding=0),
-                                                                    nn.BatchNorm2d(out_channels*2, momentum=0.01, affine=True, track_running_stats=True),
-                                                                    nn.ReLU(),
-                                                                    nn.Conv2d(in_channels=out_channels * 2, out_channels=out_channels, bias=False, kernel_size=3, stride=1,
-                                                                              padding=(dilation, dilation), dilation=dilation)))
+#         self.atrous_conv.add_module('aconv_sequence', nn.Sequential(nn.ReLU(),
+#                                                                     nn.Conv2d(in_channels=in_channels, out_channels=out_channels*2, bias=False, kernel_size=1, stride=1, padding=0),
+#                                                                     nn.BatchNorm2d(out_channels*2, momentum=0.01, affine=True, track_running_stats=True),
+#                                                                     nn.ReLU(),
+#                                                                     nn.Conv2d(in_channels=out_channels * 2, out_channels=out_channels, bias=False, kernel_size=3, stride=1,
+#                                                                               padding=(dilation, dilation), dilation=dilation)))
 
-    def forward(self, x):
-        return self.atrous_conv.forward(x)
+#     def forward(self, x):
+#         return self.atrous_conv.forward(x)
     
 
 class upconv(nn.Module):
@@ -89,47 +90,60 @@ class upconv(nn.Module):
         out = self.elu(out)
         return out
 
+class UpSample(nn.Sequential):
+    def __init__(self, skip_input, output_features):
+        super(UpSample, self).__init__()        
+        self.convA = nn.Conv2d(skip_input, output_features, kernel_size=3, stride=1, padding=1)
+        self.leakyreluA = nn.LeakyReLU(0.2)
+        self.convB = nn.Conv2d(output_features, output_features, kernel_size=3, stride=1, padding=1)
+        self.leakyreluB = nn.LeakyReLU(0.2)
 
-class reduction_1x1(nn.Sequential):
-    def __init__(self, num_in_filters, num_out_filters, max_depth, is_final=False):
-        super(reduction_1x1, self).__init__()        
-        self.max_depth = max_depth
-        self.is_final = is_final
-        self.sigmoid = nn.Sigmoid()
-        self.reduc = torch.nn.Sequential()
+    def forward(self, x, concat_with):
+        #interpolate x from x.size to larger size(concat_with.shape=(C,H,W))
+        up_x = F.interpolate(x, size=[concat_with.size(2), concat_with.size(3)], mode='bilinear', align_corners=True)
+        return self.leakyreluB( self.convB( self.leakyreluA(self.convA( torch.cat([up_x, concat_with], dim=1) ) ) )  )
+
+
+# class reduction_1x1(nn.Sequential):
+#     def __init__(self, num_in_filters, num_out_filters, max_depth, is_final=False):
+#         super(reduction_1x1, self).__init__()        
+#         self.max_depth = max_depth
+#         self.is_final = is_final
+#         self.sigmoid = nn.Sigmoid()
+#         self.reduc = torch.nn.Sequential()
         
-        while num_out_filters >= 4:
-            if num_out_filters < 8:
-                if self.is_final:
-                    self.reduc.add_module('final', torch.nn.Sequential(nn.Conv2d(num_in_filters, out_channels=1, bias=False,
-                                                                                 kernel_size=1, stride=1, padding=0),
-                                                                       nn.Sigmoid()))
-                else:
-                    self.reduc.add_module('plane_params', torch.nn.Conv2d(num_in_filters, out_channels=3, bias=False,
-                                                                          kernel_size=1, stride=1, padding=0))
-                break
-            else:
-                self.reduc.add_module('inter_{}_{}'.format(num_in_filters, num_out_filters),
-                                      torch.nn.Sequential(nn.Conv2d(in_channels=num_in_filters, out_channels=num_out_filters,
-                                                                    bias=False, kernel_size=1, stride=1, padding=0),
-                                                          nn.ELU()))
+#         while num_out_filters >= 4:
+#             if num_out_filters < 8:
+#                 if self.is_final:
+#                     self.reduc.add_module('final', torch.nn.Sequential(nn.Conv2d(num_in_filters, out_channels=1, bias=False,
+#                                                                                  kernel_size=1, stride=1, padding=0),
+#                                                                        nn.Sigmoid()))
+#                 else:
+#                     self.reduc.add_module('plane_params', torch.nn.Conv2d(num_in_filters, out_channels=3, bias=False,
+#                                                                           kernel_size=1, stride=1, padding=0))
+#                 break
+#             else:
+#                 self.reduc.add_module('inter_{}_{}'.format(num_in_filters, num_out_filters),
+#                                       torch.nn.Sequential(nn.Conv2d(in_channels=num_in_filters, out_channels=num_out_filters,
+#                                                                     bias=False, kernel_size=1, stride=1, padding=0),
+#                                                           nn.ELU()))
 
-            num_in_filters = num_out_filters
-            num_out_filters = num_out_filters // 2
+#             num_in_filters = num_out_filters
+#             num_out_filters = num_out_filters // 2
     
-    def forward(self, net):
-        net = self.reduc.forward(net)
-        if not self.is_final:
-            theta = self.sigmoid(net[:, 0, :, :]) * math.pi / 3
-            phi = self.sigmoid(net[:, 1, :, :]) * math.pi * 2
-            dist = self.sigmoid(net[:, 2, :, :]) * self.max_depth
-            n1 = torch.mul(torch.sin(theta), torch.cos(phi)).unsqueeze(1)
-            n2 = torch.mul(torch.sin(theta), torch.sin(phi)).unsqueeze(1)
-            n3 = torch.cos(theta).unsqueeze(1)
-            n4 = dist.unsqueeze(1)
-            net = torch.cat([n1, n2, n3, n4], dim=1)
+#     def forward(self, net):
+#         net = self.reduc.forward(net)
+#         if not self.is_final:
+#             theta = self.sigmoid(net[:, 0, :, :]) * math.pi / 3
+#             phi = self.sigmoid(net[:, 1, :, :]) * math.pi * 2
+#             dist = self.sigmoid(net[:, 2, :, :]) * self.max_depth
+#             n1 = torch.mul(torch.sin(theta), torch.cos(phi)).unsqueeze(1)
+#             n2 = torch.mul(torch.sin(theta), torch.sin(phi)).unsqueeze(1)
+#             n3 = torch.cos(theta).unsqueeze(1)
+#             n4 = dist.unsqueeze(1)
+#             net = torch.cat([n1, n2, n3, n4], dim=1)
         
-        return net
+#         return net
 
 class encoder(nn.Module):
     def __init__(self, params):
@@ -236,27 +250,35 @@ class DecodeModel(nn.Module):
         self.dense2 = BottleneckDecoderBlock(64,64)#,pad_num=4,dil_num=4)
         
         self.lstm = ConvLSTMCell(64,64,(3,3),bias=True)
-        self.dense3 = BottleneckDecoderBlock(64,64)#,pad_num=8,dil_num=8)
-        self.dense4 = BottleneckDecoderBlock(64,64)#,pad_num=8,dil_num=8)
 
-        self.trans4 = TransitionBlock(64,64)
-        self.half = half
+        self.d_conv4 = nn.Conv2d(64, 64, kernel_size=1, stride=1, padding=1)
+        self.up1 = UpSample(64+128, 32)
+        self.up2 = UpSample(skip_input=32 + 6, output_features=16)
+        self.d_conv5 = nn.Conv2d(16, 3, kernel_size=3, stride=1, padding=1)
+
+        # self.dense3 = BottleneckDecoderBlock(64,64)#,pad_num=8,dil_num=8)
+        # self.dense4 = BottleneckDecoderBlock(64,64)#,pad_num=8,dil_num=8)
+
+        # self.trans4 = TransitionBlock(64,64)
+        # self.half = half
          
-        self.dense5 = BottleneckDecoderBlock(128,128)
-        self.trans5 = TransitionBlock(128,64)
-        self.conv1 = nn.Conv2d(64,16,3,1,2,2)
-        self.norm1 = nn.InstanceNorm2d(16)
+        # self.dense5 = BottleneckDecoderBlock(128,128)
+        # self.trans5 = TransitionBlock(128,64)
+        # self.conv1 = nn.Conv2d(64,16,3,1,2,2)
+        # self.norm1 = nn.InstanceNorm2d(16)
 
-        self.refine = refineblock(16+3,OUTPUT_C)
+        # self.refine = refineblock(16+3,OUTPUT_C)
 
         self.elu = nn.ELU()
         self.bn_1       = nn.BatchNorm2d(64, momentum=0.01, affine=True, eps=1.1e-5)
         self.bn_2       = nn.BatchNorm2d(64+128, momentum=0.01, affine=True, eps=1.1e-5)
-        self.aspp = ASPP_block(64+ 64+128,64)
+        self.aspp = ASPP_block(64+ 64+128,64,[1,2,3,4,5])
+        # self.aspp1 = ASPP_block(64+ 64+128,64,[2,4,6,8,10])
+        # self.aspp2 = ASPP_block(64+ 64+128,64,[4,8,12,16,20])
 
         self.sigmoid = nn.Sigmoid()
 
-    def forward(self,x,state=None,features=None):
+    def forward(self,x,state=None,features=None,i=None):
         skip0, skip1, skip2, skip3 = features[1], features[2], features[3], features[4]
         dense_features = torch.nn.ReLU()(features[5])
         upconv5 = self.upconv5(dense_features) # H/16
@@ -279,9 +301,9 @@ class DecodeModel(nn.Module):
         iconv3 = self.bn3_2(iconv3)
 
         #print("x:",x.size())
-        x0 = self.relu0(self.norm0(self.conv0(x)))
+        x0 = self.relu0(self.norm0(self.conv0(x))) #H/2
         x01 = self.dense_block1(x0)
-        x1 = self.trans_block1(x01)
+        x1 = self.trans_block1(x01) #H/4
         x2 = self.dense1(x1)
         x3 = self.dense2(x2)
         x3 = torch.cat([x3,iconv3],dim=1)
@@ -289,19 +311,42 @@ class DecodeModel(nn.Module):
         x1a = self.bn_1(self.elu(x1))#ASPP
         x3a = self.bn_2(self.elu(x3))
         xa = torch.cat([x1a, x3a], dim=1)
+
+        if i==0:
+            self.aspp.change_dilation_rates([1,2,3,4,5])
+        elif i==1: 
+            self.aspp.change_dilation_rates([2,4,6,8,10])
+        elif i==2:
+            self.aspp.change_dilation_rates([4,8,12,16,20])
         xa = self.aspp(xa)
+
+        # if i==0:
+        #     xa = self.aspp0(xa)
+        #     print(self.aspp0)
+        # elif i==1: 
+        #     xa = self.aspp1(xa)
+        # elif i==2:
+        #     xa = self.aspp2(xa)
+        # xa = self.aspp(xa)
 
         #print("x3:",x3.size())
         x31,h = self.lstm(xa,state)
-        x4 = self.dense3(x31)
-        x5 = self.trans4(self.dense4(x4))
 
-        x51 = torch.cat([x5,x01],dim=1)
-        x6 = self.trans5(self.dense5(x51))
-        x6 = self.relu0(self.norm1(self.conv1(x6)))
+        x4 = self.d_conv4(x31)
+        skip_1of2s = torch.cat([x01,skip0],dim=1) #_C=64+64
+        x42 = self.up1(x4,skip_1of2s) #H/2
+        x5 = self.up2(x42,x) #H/1
+        dehaze = self.d_conv5(x5)
 
-        x61 = torch.cat([x6,x[:,0:3,:,:]],1)
-        dehaze = self.refine(x61)
+        # x4 = self.dense3(x31)
+        # x5 = self.trans4(self.dense4(x4))
+
+        # x51 = torch.cat([x5,x01],dim=1)
+        # x6 = self.trans5(self.dense5(x51))
+        # x6 = self.relu0(self.norm1(self.conv1(x6)))
+
+        # x61 = torch.cat([x6,x[:,0:3,:,:]],1)
+        # dehaze = self.refine(x61)
 
         #dehaze = self.sigmoid(dehaze)        
 
@@ -358,7 +403,7 @@ class SRN(nn.Module):
             #print("im_input:",im_input.size())
             #print("state:",state[0].size(),state[1].size())
             skip_feat = self.encoder(im_input[:,0:3,:,:])
-            output,new_state = self.decode(im_input,state,skip_feat)
+            output,new_state = self.decode(im_input,state,skip_feat,i)
 
             # out1 = self.up(output,scale_factor=2.0,mode="nearest")
             if i<2:

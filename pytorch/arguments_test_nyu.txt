@@ -2,8 +2,8 @@
 --data_path /data1/hashimoto/dataset/nyu_depth_v2/official_splits/test/
 --dataset nyu
 --filenames_file ../train_test_inputs/nyudepthv2_test_files_with_gt.txt
---model_name bts_nyu_v2_pytorch_2020_12_20_srn_aspp_outC3_loss1_dense
---checkpoint_path ./models/bts_nyu_v2_pytorch_2020_12_20_srn_aspp_outC3_loss1_dense/model-45000-best_abs_rel_0.13531
+--model_name bts_nyu_v2_pytorch_2020_12_22_srn_aspp_outC3_loss1_dense_decoder
+--checkpoint_path ./models/bts_nyu_v2_pytorch_2020_12_22_srn_aspp_outC3_loss1_dense_decoder/model-63000-best_abs_rel_0.12994
 --input_height 464
 --input_width 640
 --max_depth 10

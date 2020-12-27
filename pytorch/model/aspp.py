@@ -21,19 +21,25 @@ class atrous_conv(nn.Sequential):
         return self.atrous_conv.forward(x)
 
 class ASPP_block(nn.Module):
-    def __init__(self, dim_in, dim_out):
+    def __init__(self, dim_in, dim_out,dilation_rates=[3,6,12,18,24]):
         super().__init__()
         
         self.conv0      = torch.nn.Sequential(nn.Conv2d(dim_in, dim_out*2, 3, 1, 1, bias=False),
                                               nn.ELU())
         
-        self.daspp_3    = atrous_conv(dim_out*2, dim_out, 3)
-        self.daspp_6    = atrous_conv(dim_in + dim_out, dim_out, 6)
-        self.daspp_12   = atrous_conv(dim_in + dim_out*2, dim_out, 12)
-        self.daspp_18   = atrous_conv(dim_in + dim_out*3, dim_out, 18)
-        self.daspp_24   = atrous_conv(dim_in + dim_out*4, dim_out, 24)
+        self.daspp_3    = atrous_conv(dim_out*2, dim_out, dilation_rates[0])
+        self.daspp_6    = atrous_conv(dim_in + dim_out, dim_out, dilation_rates[1])
+        self.daspp_12   = atrous_conv(dim_in + dim_out*2, dim_out, dilation_rates[2])
+        self.daspp_18   = atrous_conv(dim_in + dim_out*3, dim_out, dilation_rates[3])
+        self.daspp_24   = atrous_conv(dim_in + dim_out*4, dim_out, dilation_rates[4])
         self.daspp_conv = torch.nn.Sequential(nn.Conv2d(dim_out*7, dim_out, 3, 1, 1, bias=False),
                                               nn.ELU())
+
+    def change_dilation_rates(self,dilation_rates):
+        for i,name in enumerate(["daspp_3","daspp_6","daspp_12","daspp_18","daspp_24"]):
+            getattr(self,name).atrous_conv.aconv_sequence[4].padding=(dilation_rates[i],dilation_rates[i])
+            getattr(self,name).atrous_conv.aconv_sequence[4].dilation=(dilation_rates[i],dilation_rates[i])
+        #print(self.daspp_3.atrous_conv.aconv_sequence[4])
 
     def forward(self, x):
         iconv0 = self.conv0(x)
