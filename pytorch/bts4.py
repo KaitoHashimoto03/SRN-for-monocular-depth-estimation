@@ -57,25 +57,7 @@ class silog_loss(nn.Module):
 
     def forward(self, depth_est, depth_gt, mask):
         d = torch.log(depth_est[mask]) - torch.log(depth_gt[mask])
-        return torch.sqrt((d ** 2).mean() - self.variance_focus * (d.mean() ** 2)) * 10.0
-
-# class atrous_conv(nn.Sequential):
-#     def __init__(self, in_channels, out_channels, dilation, apply_bn_first=True):
-#         super(atrous_conv, self).__init__()
-#         self.atrous_conv = torch.nn.Sequential()
-#         if apply_bn_first:
-#             self.atrous_conv.add_module('first_bn', nn.BatchNorm2d(in_channels, momentum=0.01, affine=True, track_running_stats=True, eps=1.1e-5))
-        
-#         self.atrous_conv.add_module('aconv_sequence', nn.Sequential(nn.ReLU(),
-#                                                                     nn.Conv2d(in_channels=in_channels, out_channels=out_channels*2, bias=False, kernel_size=1, stride=1, padding=0),
-#                                                                     nn.BatchNorm2d(out_channels*2, momentum=0.01, affine=True, track_running_stats=True),
-#                                                                     nn.ReLU(),
-#                                                                     nn.Conv2d(in_channels=out_channels * 2, out_channels=out_channels, bias=False, kernel_size=3, stride=1,
-#                                                                               padding=(dilation, dilation), dilation=dilation)))
-
-#     def forward(self, x):
-#         return self.atrous_conv.forward(x)
-    
+        return torch.sqrt((d ** 2).mean() - self.variance_focus * (d.mean() ** 2)) * 10.0 
 
 class upconv(nn.Module):
     def __init__(self, in_channels, out_channels, ratio=2):
@@ -218,36 +200,37 @@ class DecodeModel(nn.Module):
     def __init__(self,half=False):
         super(DecodeModel,self).__init__()
         feat_out_channels = [64, 64, 128, 256, 1024]
+        en_out_channels = [128,192,320,608,1200]
         num_features = 512
-        self.upconv5    = upconv(feat_out_channels[4], num_features)
+        self.upconv5    = upconv(feat_out_channels[4]+en_out_channels[4], num_features)
         self.bn5        = nn.BatchNorm2d(num_features, momentum=0.01, affine=True, eps=1.1e-5)
         
-        self.conv5      = torch.nn.Sequential(nn.Conv2d(num_features + feat_out_channels[3], num_features, 3, 1, 1, bias=False),
+        self.conv5      = torch.nn.Sequential(nn.Conv2d(num_features + en_out_channels[3], num_features, 3, 1, 1, bias=False),
                                               nn.ELU())
         self.upconv4    = upconv(num_features, num_features // 2)
         self.bn4        = nn.BatchNorm2d(num_features // 2, momentum=0.01, affine=True, eps=1.1e-5)
-        self.conv4      = torch.nn.Sequential(nn.Conv2d(num_features // 2 + feat_out_channels[2], num_features // 2, 3, 1, 1, bias=False),
+        self.conv4      = torch.nn.Sequential(nn.Conv2d(num_features // 2 + en_out_channels[2], num_features // 2, 3, 1, 1, bias=False),
                                               nn.ELU())
         self.bn4_2      = nn.BatchNorm2d(num_features // 2, momentum=0.01, affine=True, eps=1.1e-5)
 
         self.upconv3    = upconv(num_features // 2, num_features // 4)
         self.bn3        = nn.BatchNorm2d(num_features // 4, momentum=0.01, affine=True, eps=1.1e-5)
-        self.conv3      = torch.nn.Sequential(nn.Conv2d(num_features // 4 + feat_out_channels[1], num_features // 4, 3, 1, 1, bias=False),
+        self.conv3      = torch.nn.Sequential(nn.Conv2d(num_features // 4 + en_out_channels[1], num_features // 4, 3, 1, 1, bias=False),
                                               nn.ELU())
         self.bn3_2      = nn.BatchNorm2d(num_features // 4, momentum=0.01, affine=True, eps=1.1e-5)
 
 
         ############# 256-256  ##############
-        OUTPUT_C = 3
-        self.conv0 = nn.Conv2d(3 + OUTPUT_C,64,7,2,3)
-        self.norm0 = nn.InstanceNorm2d(64)
-        self.relu0 = nn.LeakyReLU(inplace=True)
+        # self.conv0 = nn.Conv2d(3 + 3,64,7,2,3)
+        # self.norm0 = nn.InstanceNorm2d(64)
+        # self.relu0 = nn.LeakyReLU(inplace=True)
 
-        self.dense_block1 = BottleneckDecoderBlock(64,64)#,pad_num=2,dil_num=2)
-        self.trans_block1 = Transiondown(64,64)
+        # self.dense_block1 = BottleneckDecoderBlock(64,64)#,pad_num=2,dil_num=2)
+        # self.trans_block1 = Transiondown(64,64)
     
-        self.dense1 = BottleneckDecoderBlock(64,64)#,pad_num=2,dil_num=2)
-        self.dense2 = BottleneckDecoderBlock(64,64)#,pad_num=4,dil_num=4)
+        # self.dense1 = BottleneckDecoderBlock(64,64)#,pad_num=2,dil_num=2)
+        # self.dense2 = BottleneckDecoderBlock(64,64)#,pad_num=4,dil_num=4)
+        self.DenseNetOriginal = DenseNetOriginal(32,(6,12,24,16),(64,64,128,256),64,4,0)
         
         self.lstm = ConvLSTMCell(64,64,(3,3),bias=True)
 
@@ -256,85 +239,70 @@ class DecodeModel(nn.Module):
         self.up2 = UpSample(skip_input=32 + 6, output_features=16)
         self.d_conv5 = nn.Conv2d(16, 3, kernel_size=3, stride=1, padding=1)
 
-        # self.dense3 = BottleneckDecoderBlock(64,64)#,pad_num=8,dil_num=8)
-        # self.dense4 = BottleneckDecoderBlock(64,64)#,pad_num=8,dil_num=8)
-
-        # self.trans4 = TransitionBlock(64,64)
-        # self.half = half
-         
-        # self.dense5 = BottleneckDecoderBlock(128,128)
-        # self.trans5 = TransitionBlock(128,64)
-        # self.conv1 = nn.Conv2d(64,16,3,1,2,2)
-        # self.norm1 = nn.InstanceNorm2d(16)
-
-        # self.refine = refineblock(16+3,OUTPUT_C)
-
         self.elu = nn.ELU()
         self.bn_1       = nn.BatchNorm2d(64, momentum=0.01, affine=True, eps=1.1e-5)
         self.bn_2       = nn.BatchNorm2d(64+128, momentum=0.01, affine=True, eps=1.1e-5)
-        self.aspp = ASPP_block(64+ 64+128,64,[1,2,3,4,5])
-        # self.aspp1 = ASPP_block(64+ 64+128,64,[2,4,6,8,10])
-        # self.aspp2 = ASPP_block(64+ 64+128,64,[4,8,12,16,20])
+        self.aspp = ASPP_block(128,64,[1,2,3,4,5])
 
         self.sigmoid = nn.Sigmoid()
 
     def forward(self,x,state=None,features=None,i=None):
         skip0, skip1, skip2, skip3 = features[1], features[2], features[3], features[4]
         dense_features = torch.nn.ReLU()(features[5])
+
+        e1,e2,e3,e4,e5 =  self.DenseNetOriginal(x,skip0, skip1, skip2, skip3) #_C 128,192,320,608,1200
+        #print(e1.size(),e2.size(),e3.size(),e4.size(),e5.size())
+        dense_features = torch.cat([dense_features,e5],dim=1)
+
         upconv5 = self.upconv5(dense_features) # H/16
         upconv5 = self.bn5(upconv5)
         #print(dense_features.size(),upconv5.size(),skip3.size())
-        concat5 = torch.cat([upconv5, skip3], dim=1)
+        concat5 = torch.cat([upconv5, e4], dim=1)
         iconv5 = self.conv5(concat5)
+
+        #iconv5,h = self.lstm(iconv5,state)
         
         upconv4 = self.upconv4(iconv5) # H/8
         upconv4 = self.bn4(upconv4)
         #print(iconv5.size(),upconv4.size(),skip2.size())
-        concat4 = torch.cat([upconv4, skip2], dim=1)
+        concat4 = torch.cat([upconv4, e3], dim=1)
         iconv4 = self.conv4(concat4)
         iconv4 = self.bn4_2(iconv4)
 
         upconv3 = self.upconv3(iconv4) # H/4
         upconv3 = self.bn3(upconv3)
-        concat3 = torch.cat([upconv3, skip1], dim=1)
+        concat3 = torch.cat([upconv3, e2], dim=1)
         iconv3 = self.conv3(concat3)
         iconv3 = self.bn3_2(iconv3)
+        x3 = iconv3
 
         #print("x:",x.size())
-        x0 = self.relu0(self.norm0(self.conv0(x))) #H/2
-        x01 = self.dense_block1(x0)
-        x1 = self.trans_block1(x01) #H/4
-        x2 = self.dense1(x1)
-        x3 = self.dense2(x2)
-        x3 = torch.cat([x3,iconv3],dim=1)
+        # x0 = self.relu0(self.norm0(self.conv0(x))) #H/2
+        # x01 = self.dense_block1(x0)
+        # x1 = self.trans_block1(x01) #H/4
+        # x2 = self.dense1(x1)
+        # x3 = self.dense2(x2)
+        # x3 = torch.cat([x3,iconv3],dim=1)
 
-        x1a = self.bn_1(self.elu(x1))#ASPP
-        x3a = self.bn_2(self.elu(x3))
-        xa = torch.cat([x1a, x3a], dim=1)
+        # x1a = self.bn_1(self.elu(x1))#ASPP
+        # x3a = self.bn_2(self.elu(x3))
+        # xa = torch.cat([x1a, x3a], dim=1)
 
         if i==0:
-            self.aspp.change_dilation_rates([1,2,3,4,5])
+            self.aspp.change_dilation_rates([3,6,9,12,15])
         elif i==1: 
-            self.aspp.change_dilation_rates([2,4,6,8,10])
+            self.aspp.change_dilation_rates([6,12,18,24,30])
         elif i==2:
-            self.aspp.change_dilation_rates([4,8,12,16,20])
-        xa = self.aspp(xa)
-
-        # if i==0:
-        #     xa = self.aspp0(xa)
-        #     print(self.aspp0)
-        # elif i==1: 
-        #     xa = self.aspp1(xa)
-        # elif i==2:
-        #     xa = self.aspp2(xa)
-        # xa = self.aspp(xa)
+            self.aspp.change_dilation_rates([12,24,36,48,60])
+        xa = self.aspp(x3)
 
         #print("x3:",x3.size())
         x31,h = self.lstm(xa,state)
+        #x31 = xa
 
         x4 = self.d_conv4(x31)
-        skip_1of2s = torch.cat([x01,skip0],dim=1) #_C=64+64
-        x42 = self.up1(x4,skip_1of2s) #H/2
+        #skip_1of2s = torch.cat([x01,skip0],dim=1) #_C=64+64
+        x42 = self.up1(x4,e1) #H/2
         x5 = self.up2(x42,x) #H/1
         dehaze = self.d_conv5(x5)
 
@@ -387,7 +355,7 @@ class SRN(nn.Module):
             self.down = (down1,down2)
         pred_input = self.down[1](self.down[0](x))
         b,_,h,w = pred_input.size()
-        state = (torch.zeros(b,64,h//4,w//4,device=self.decode.conv0.weight.device),torch.zeros(b,64,h//4,w//4,device=self.decode.conv0.weight.device))
+        state = (torch.zeros(b,64,h//4,w//4,device=self.decode.DenseNetOriginal.conv0.weight.device),torch.zeros(b,64,h//4,w//4,device=self.decode.DenseNetOriginal.conv0.weight.device))
         input_imgs = [0]*3
         results = []
         for j in range(3):

@@ -32,7 +32,7 @@ import errno
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from bts4 import *
+from models.bts_nyu_v2_pytorch_2020_12_27_srn_aspp3to60.bts_nyu_v2_pytorch_2020_12_27_srn_aspp3to60 import *
 
 
 def convert_arg_line_to_args(arg_line):
