@@ -1,17 +1,17 @@
 # Scale-recurrent network for monocular depth estimation
 
 ## output(indoor)
-![Screenshot](./utils/srn_result.png)
+<img src="./utils/srn_result.png" width="70%">
 ## output(outdoor)
-![Screenshot](./utils/srn_kitti.png)
+<img src="./utils/srn_kitti.png" width="70%">
 
 ## model
-###### overall
-![Screenshot](./utils/srn_model.png)
-###### encoder
-![Screenshot](./utils/srn_encoder.png)
-###### decoder
-![Screenshot](./utils/srn_decoder.png)
+#### overall
+<img src="./utils/srn_model.png" width="65%">
+#### encoder
+<img src="./utils/srn_encoder.png" width="60%">
+#### decoder
+<img src="./utils/srn_decoder.png" width="60%">
 
 ## Prepare [NYU Depth V2](https://cs.nyu.edu/~silberman/datasets/nyu_depth_v2.html) test set
 ```shell
