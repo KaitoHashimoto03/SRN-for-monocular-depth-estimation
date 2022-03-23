@@ -1,12 +1,12 @@
 --mode train
---model_name bts_nyu_v2_pytorch_2021_01_02_srn_aspp3to60_enupdated_lstm
+--model_name srn_nyu_01_28_densenet_121_no_LSTM
 --encoder densenet121_bts
 --dataset nyu
 --data_path /data1/hashimoto/dataset/nyu_depth_v2/sync/
 --gt_path /data1/hashimoto/dataset/nyu_depth_v2/sync/
 --filenames_file ../train_test_inputs/nyudepthv2_train_files_with_gt.txt
 --batch_size 8
---num_epochs 50
+--num_epochs 100
 --learning_rate 1e-4
 --weight_decay 1e-2
 --adam_eps 1e-3
@@ -16,9 +16,9 @@
 --max_depth 10
 --do_random_rotate
 --degree 2.5
---log_directory ./models/
+--log_directory /data1/hashimoto/log_dir/
 --multiprocessing_distributed
---dist_url tcp://127.0.0.1:2345
+--dist_url tcp://127.0.0.1:2346
 
 --log_freq 100
 --do_online_eval

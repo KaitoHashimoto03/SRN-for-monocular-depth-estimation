@@ -67,7 +67,7 @@ class upconv(nn.Module):
         self.ratio = ratio
         
     def forward(self, x):
-        up_x = torch_nn_func.interpolate(x, scale_factor=self.ratio, mode='nearest')
+        up_x = torch_nn_func.interpolate(x, scale_factor=self.ratio, mode='bilinear')
         out = self.conv(up_x)
         out = self.elu(out)
         return out
@@ -199,8 +199,8 @@ class BtsModel(nn.Module):
 class DecodeModel(nn.Module):
     def __init__(self,half=False):
         super(DecodeModel,self).__init__()
-        feat_out_channels = [64, 64, 128, 256, 1024]
-        en_out_channels = [128,192,320,608,1200]
+        feat_out_channels = [64, 64, 128, 256, 1024]#densenet-161[96, 96, 192, 384, 2208]
+        en_out_channels = [128,192,320,608,1200]#[160,256,416,784,1288]#[128,192,320,608,1200]
         num_features = 512
         self.upconv5    = upconv(feat_out_channels[4]+en_out_channels[4], num_features)
         self.bn5        = nn.BatchNorm2d(num_features, momentum=0.01, affine=True, eps=1.1e-5)
@@ -230,19 +230,19 @@ class DecodeModel(nn.Module):
     
         # self.dense1 = BottleneckDecoderBlock(64,64)#,pad_num=2,dil_num=2)
         # self.dense2 = BottleneckDecoderBlock(64,64)#,pad_num=4,dil_num=4)
-        self.DenseNetOriginal = DenseNetOriginal(32,(6,12,24,16),(64,64,128,256),64,4,0)
+        self.DenseNetOriginal = DenseNetOriginal(32,(6,12,24,16),feat_out_channels[0:4])
         
         self.lstm = ConvLSTMCell(64,64,(3,3),bias=True)
 
         self.d_conv4 = nn.Conv2d(64, 64, kernel_size=1, stride=1, padding=1)
-        self.up1 = UpSample(64+128, 32)
+        self.up1 = UpSample(64+en_out_channels[0], 32)
         self.up2 = UpSample(skip_input=32 + 6, output_features=16)
         self.d_conv5 = nn.Conv2d(16, 3, kernel_size=3, stride=1, padding=1)
 
         self.elu = nn.ELU()
         self.bn_1       = nn.BatchNorm2d(64, momentum=0.01, affine=True, eps=1.1e-5)
         self.bn_2       = nn.BatchNorm2d(64+128, momentum=0.01, affine=True, eps=1.1e-5)
-        self.aspp = ASPP_block(128,64,[1,2,3,4,5])
+        self.aspp = ASPP_block(128,64,[3,6,12,18,24])
 
         self.sigmoid = nn.Sigmoid()
 
@@ -250,14 +250,15 @@ class DecodeModel(nn.Module):
         skip0, skip1, skip2, skip3 = features[1], features[2], features[3], features[4]
         dense_features = torch.nn.ReLU()(features[5])
 
-        e1,e2,e3,e4,e5 =  self.DenseNetOriginal(x,skip0, skip1, skip2, skip3) #_C 128,192,320,608,1200
+        e1,e2,e3,e4,e5 = self.DenseNetOriginal(x,skip0,skip1, skip2, skip3) #_C 128,192,320,608,1200 160,256,416,784,1288
+        #print(e1.size(),e2.size(),e3.size())
         #print(e1.size(),e2.size(),e3.size(),e4.size(),e5.size())
         dense_features = torch.cat([dense_features,e5],dim=1)
 
         upconv5 = self.upconv5(dense_features) # H/16
         upconv5 = self.bn5(upconv5)
         #print(dense_features.size(),upconv5.size(),skip3.size())
-        concat5 = torch.cat([upconv5, e4], dim=1)
+        concat5 = torch.cat([upconv5, e4], dim=1)#concat5 = torch.cat([upconv5, e4], dim=1)
         iconv5 = self.conv5(concat5)
 
         #iconv5,h = self.lstm(iconv5,state)
@@ -265,7 +266,7 @@ class DecodeModel(nn.Module):
         upconv4 = self.upconv4(iconv5) # H/8
         upconv4 = self.bn4(upconv4)
         #print(iconv5.size(),upconv4.size(),skip2.size())
-        concat4 = torch.cat([upconv4, e3], dim=1)
+        concat4 = torch.cat([upconv4, e3], dim=1)#concat4 = torch.cat([upconv4, e3], dim=1)
         iconv4 = self.conv4(concat4)
         iconv4 = self.bn4_2(iconv4)
 
@@ -298,27 +299,19 @@ class DecodeModel(nn.Module):
 
         #print("x3:",x3.size())
         x31,h = self.lstm(xa,state)
+        #h = None
         #x31 = xa
 
-        x4 = self.d_conv4(x31)
+        #x4 = self.d_conv4(x31)
+
         #skip_1of2s = torch.cat([x01,skip0],dim=1) #_C=64+64
+        #e1 = torch.cat([e1, skip0], dim=1)
+        x4 = self.d_conv4(x31)
         x42 = self.up1(x4,e1) #H/2
         x5 = self.up2(x42,x) #H/1
-        dehaze = self.d_conv5(x5)
+        result = self.d_conv5(x5)
 
-        # x4 = self.dense3(x31)
-        # x5 = self.trans4(self.dense4(x4))
-
-        # x51 = torch.cat([x5,x01],dim=1)
-        # x6 = self.trans5(self.dense5(x51))
-        # x6 = self.relu0(self.norm1(self.conv1(x6)))
-
-        # x61 = torch.cat([x6,x[:,0:3,:,:]],1)
-        # dehaze = self.refine(x61)
-
-        #dehaze = self.sigmoid(dehaze)        
-
-        return dehaze,h
+        return result,h
 
 class SRN(nn.Module):
     def __init__(self,params):

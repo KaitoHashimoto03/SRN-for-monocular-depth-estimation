@@ -1,11 +1,12 @@
 --encoder densenet121_bts
 --data_path /data1/hashimoto/dataset/nyu_depth_v2/official_splits/test/
 --dataset nyu
---filenames_file ../train_test_inputs/nyudepthv2_test_files_with_gt.txt
---model_name bts_nyu_v2_pytorch_2020_12_27_srn_aspp3to60
---checkpoint_path ./models/bts_nyu_v2_pytorch_2020_12_27_srn_aspp3to60/model-144000-best_abs_rel_0.12235
+--filenames_file /home/hashimoto/documents/bts/train_test_inputs/nyudepthv2_test_files_with_gt.txt
+--model_name srn_nyu_01_27_densenet_121_no_ASPP
+--checkpoint_path /data1/hashimoto/log_dir/srn_nyu_01_27_densenet_121_no_ASPP/model-166500-best_abs_rel_0.12910
 --input_height 480
 --input_width 640
 --max_depth 10
+
 
 --save_lpg

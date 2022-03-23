@@ -291,7 +291,18 @@ class DenseNetOriginal(nn.Module):
             elif isinstance(m, nn.Linear):
                 nn.init.constant_(m.bias, 0)
 
-    def forward(self, x ,skip0, skip1, skip2, skip3):
+    def forward(self, x ,skip0=None, skip1=None, skip2=None, skip3=None):
+        # x1 = self.relu0(self.norm0(self.conv0(x)))
+        # x1 = torch.cat([x1,skip0],dim=1)
+        # #x2 = self.pool0(x1)
+        # #x2 = torch.cat([x2,skip1],dim=1)
+        # x2 = self.transition1(self.denseblock1(x1))
+        # x2 = torch.cat([x2,skip1],dim=1)
+        # x3 = self.transition2(self.denseblock2(x2))
+        # #x4 = torch.cat([x4,skip3],dim=1)
+        # #x5 = self.transition3(self.denseblock3(x4))
+        # x4 = self.norm5(self.denseblock3(x3))
+
         x1 = self.relu0(self.norm0(self.conv0(x)))
         x1 = torch.cat([x1,skip0],dim=1)
         x2 = self.pool0(x1)
@@ -303,5 +314,5 @@ class DenseNetOriginal(nn.Module):
         x5 = self.transition3(self.denseblock3(x4))
         x6 = self.norm5(self.denseblock4(x5))
         
-        return x1,x2,x3,x4,x6
+        return x1,x2,x3,x4,x6#x1,x2,x4
 

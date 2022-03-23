@@ -1,1 +1,2 @@
-26_r-2.png None 500
+./IMG_5.jpg None 500
+./img7.jpg None 500

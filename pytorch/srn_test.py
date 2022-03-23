@@ -32,7 +32,7 @@ import errno
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from models.bts_nyu_v2_pytorch_2020_12_27_srn_aspp3to60.bts_nyu_v2_pytorch_2020_12_27_srn_aspp3to60 import *
+from bts4 import *
 
 
 def convert_arg_line_to_args(arg_line):
@@ -113,7 +113,7 @@ def test(params):
             image = Variable(sample['image'].cuda())
             focal = Variable(sample['focal'].cuda())
             # Predict
-            depth_est = model(image, focal)#lpg8x8, lpg4x4, lpg2x2, reduc1x1, depth_est = model(image, focal)
+            depth_est = model(image, focal)#lpg8x8, lpg4x4, lpg2x2, reduc1x1, depth_est = model(image, focal)#depth_est = model(image, focal)
             pred_depths.append(depth_est.cpu().numpy().squeeze())
             # pred_8x8s.append(lpg8x8[0].cpu().numpy().squeeze())
             # pred_4x4s.append(lpg4x4[0].cpu().numpy().squeeze())
@@ -152,6 +152,8 @@ def test(params):
             filename_image_png = save_name + '/rgb/' + lines[s].split()[0].split('/')[-1]
         else:
             scene_name = lines[s].split()[0].split('/')[0]
+            filename_pred_png = save_name + '/raw/' + scene_name + '_' + lines[s].split()[0].split('/')[1].replace(
+                '.jpg', '.png')
             filename_pred_png = save_name + '/raw/' + scene_name + '_' + lines[s].split()[0].split('/')[1].replace(
                 '.jpg', '.png')
             filename_cmap_png = save_name + '/cmap/' + scene_name + '_' + lines[s].split()[0].split('/')[1].replace(
@@ -201,13 +203,13 @@ def test(params):
             else:
                 plt.imsave(filename_cmap_png, np.log10(pred_depth), cmap='Greys')
                 filename_lpg_cmap_png = filename_cmap_png.replace('.png', '_8x8.png')
-                plt.imsave(filename_lpg_cmap_png, np.log10(pred_8x8), cmap='Greys')
-                filename_lpg_cmap_png = filename_cmap_png.replace('.png', '_4x4.png')
-                plt.imsave(filename_lpg_cmap_png, np.log10(pred_4x4), cmap='Greys')
-                filename_lpg_cmap_png = filename_cmap_png.replace('.png', '_2x2.png')
-                plt.imsave(filename_lpg_cmap_png, np.log10(pred_2x2), cmap='Greys')
-                filename_lpg_cmap_png = filename_cmap_png.replace('.png', '_1x1.png')
-                plt.imsave(filename_lpg_cmap_png, np.log10(pred_1x1), cmap='Greys')
+                # plt.imsave(filename_lpg_cmap_png, np.log10(pred_8x8), cmap='Greys')
+                # filename_lpg_cmap_png = filename_cmap_png.replace('.png', '_4x4.png')
+                # plt.imsave(filename_lpg_cmap_png, np.log10(pred_4x4), cmap='Greys')
+                # filename_lpg_cmap_png = filename_cmap_png.replace('.png', '_2x2.png')
+                # plt.imsave(filename_lpg_cmap_png, np.log10(pred_2x2), cmap='Greys')
+                # filename_lpg_cmap_png = filename_cmap_png.replace('.png', '_1x1.png')
+                # plt.imsave(filename_lpg_cmap_png, np.log10(pred_1x1), cmap='Greys')
     
     return
 

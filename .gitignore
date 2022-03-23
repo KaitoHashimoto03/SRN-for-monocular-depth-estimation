@@ -16,6 +16,10 @@ result*
 *.zip
 !splits.mat
 utils/toolbox_nyu_depth_v2
+pytorch/bts.py
+pytorch/bts2.py
+pytorch/bts3.py
+tensorflow/
 
 ### C++ ###
 # Prerequisites

@@ -1,31 +1,21 @@
-# BTS
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/from-big-to-small-multi-scale-local-planar/monocular-depth-estimation-on-kitti-eigen)](https://paperswithcode.com/sota/monocular-depth-estimation-on-kitti-eigen?p=from-big-to-small-multi-scale-local-planar) 
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/from-big-to-small-multi-scale-local-planar/monocular-depth-estimation-on-nyu-depth-v2)](https://paperswithcode.com/sota/monocular-depth-estimation-on-nyu-depth-v2?p=from-big-to-small-multi-scale-local-planar)
+# Scale-recurrent network for monocular depth estimation
 
-From Big to Small: Multi-Scale Local Planar Guidance for Monocular Depth Estimation   
-[arXiv](https://arxiv.org/abs/1907.10326)  
-[Supplementary material](https://arxiv.org/src/1907.10326v4/anc/bts_sm.pdf) 
+## output(indoor)
+![Screenshot](./utils/srn_result.png)
+## output(outdoor)
+![Screenshot](./utils/srn_kitti.png)
 
-## Video Demo 1
-[![Screenshot](https://img.youtube.com/vi/2fPdZYzx9Cg/maxresdefault.jpg)](https://www.youtube.com/watch?v=2fPdZYzx9Cg)
-## Video Demo 2
-[![Screenshot](https://img.youtube.com/vi/1J-GSb0fROw/maxresdefault.jpg)](https://www.youtube.com/watch?v=1J-GSb0fROw)
+## model
+###### overall
+![Screenshot](./utils/srn_model.png)
+###### encoder
+![Screenshot](./utils/srn_encoder.png)
+###### decoder
+![Screenshot](./utils/srn_decoder.png)
 
-## Note
-This repository contains TensorFlow and PyTorch implementations of BTS.
-## Preparation for all implementations
-```shell
-$ cd ~
-$ mkdir workspace
-$ cd workspace
-### Make a folder for datasets
-$ mkdir dataset
-### Clone this repo
-$ git clone https://github.com/cogaplex-bts/bts
-```
 ## Prepare [NYU Depth V2](https://cs.nyu.edu/~silberman/datasets/nyu_depth_v2.html) test set
 ```shell
-$ cd ~/workspace/bts/utils
+$ cd ~/workspace/srn/utils
 ### Get official NYU Depth V2 split file
 $ wget http://horatio.cs.nyu.edu/mit/silberman/nyu_depth_v2/nyu_depth_v2_labeled.mat
 ### Convert mat file to image files
@@ -43,61 +33,47 @@ $ unzip data_depth_annotated.zip
 
 Follow instructions from one of the below implementations with your choice.
 
-## TensorFlow Implementation
-[[./tensorflow/]](./tensorflow/)
-## PyTorch Implementation
-[[./pytorch/]](./pytorch/)
+## Note
+This folder contains a PyTorch implementation of SRN.\
+We tested this code under python 3.6, PyTorch 1.4.0, CUDA 10.2
 
-## Model Zoo
-### KITTI Eigen Split
-
-| Base Network |  cap  |   d1  |   d2  |   d3  | AbsRel | SqRel |  RMSE | RMSElog | SILog | log10 | #Params |          Model Download          |
-|:------------:|:-----:|:-----:|:-----:|:-----:|:------:|:-----:|:-----:|:-------:|:-----:|:-----:|:-------:|:--------------------------------:|
-| ResNet50     | 0-80m | 0.954 | 0.992 | 0.998 |  0.061 | 0.250 | 2.803 |   0.098 | 9.030 | 0.027 |   49.5M | [bts_eigen_v2_pytorch_resnet50](https://cogaplex-bts.s3.ap-northeast-2.amazonaws.com/bts_eigen_v2_pytorch_resnet50.zip)  |
-| ResNet101    | 0-80m | 0.954 | 0.992 | 0.998 |  0.061 | 0.261 | 2.834 |   0.099 | 9.075 | 0.027 |   68.5M | [bts_eigen_v2_pytorch_resnet101](https://cogaplex-bts.s3.ap-northeast-2.amazonaws.com/bts_eigen_v2_pytorch_resnet101.zip) |
-| ResNext50    | 0-80m | 0.954 | 0.993 | 0.998 |  0.061 | 0.245 | 2.774 |   0.098 | 9.014 | 0.027 |   49.0M | [bts_eigen_v2_pytorch_resnext50](https://cogaplex-bts.s3.ap-northeast-2.amazonaws.com/bts_eigen_v2_pytorch_resnext50.zip)  |
-| ResNext101   | 0-80m | 0.956 | 0.993 | 0.998 |  0.059 | 0.241 | 2.756 |   0.096 | 8.781 | 0.026 |  112.8M | [bts_eigen_v2_pytorch_resnext101](https://cogaplex-bts.s3.ap-northeast-2.amazonaws.com/bts_eigen_v2_pytorch_resnext101.zip)  |
-| DenseNet121  | 0-80m | 0.951 | 0.993 | 0.998 |  0.063 | 0.256 | 2.850 |   0.100 | 9.221 | 0.028 |   21.2M | [bts_eigen_v2_pytorch_densenet121](https://cogaplex-bts.s3.ap-northeast-2.amazonaws.com/bts_eigen_v2_pytorch_densenet121.zip) |
-| DenseNet161  | 0-80m | 0.955 | 0.993 | 0.998 |  0.060 | 0.249 | 2.798 |   0.096 | 8.933 | 0.027 |   47.0M | [bts_eigen_v2_pytorch_densenet161](https://cogaplex-bts.s3.ap-northeast-2.amazonaws.com/bts_eigen_v2_pytorch_densenet161.zip) |
-
-### NYU Depth V2
-
-| Base Network |   d1  |   d2  |   d3  | AbsRel | SqRel |  RMSE | RMSElog |  SILog | log10 | #Params |         Model Download         |
-|:------------:|:-----:|:-----:|:-----:|:------:|:-----:|:-----:|:-------:|:------:|:-----:|:-------:|:------------------------------:|
-| ResNet50     | 0.865 | 0.975 | 0.993 |  0.119 | 0.075 | 0.419 |   0.152 | 12.368 | 0.051 |   49.5M | [bts_nyu_v2_pytorch_resnet50](https://cogaplex-bts.s3.ap-northeast-2.amazonaws.com/bts_nyu_v2_pytorch_resnet50.zip) |
-| ResNet101    | 0.871 | 0.977 | 0.995 |  0.113 | 0.068 | 0.407 |   0.148 | 11.886 | 0.049 |   68.5M | [bts_nyu_v2_pytorch_resnet101](https://cogaplex-bts.s3.ap-northeast-2.amazonaws.com/bts_nyu_v2_pytorch_resnet101.zip) |
-| ResNext50    | 0.867 | 0.977 | 0.995 |  0.116 | 0.070 | 0.414 |   0.150 | 12.186 | 0.050 |   49.0M | [bts_nyu_v2_pytorch_resnext50](https://cogaplex-bts.s3.ap-northeast-2.amazonaws.com/bts_nyu_v2_pytorch_resnext50.zip)  |
-| ResNext101   | 0.880 | 0.977 | 0.994 |  0.111 | 0.069 | 0.399 |   0.145 | 11.680 | 0.048 |  112.8M | [bts_nyu_v2_pytorch_resnext101](https://cogaplex-bts.s3.ap-northeast-2.amazonaws.com/bts_nyu_v2_pytorch_resnext101.zip)  |
-| DenseNet121  | 0.871 | 0.977 | 0.993 |  0.118 | 0.072 | 0.410 |   0.149 | 12.028 | 0.050 |   21.2M | [bts_nyu_v2_pytorch_densenet121](https://cogaplex-bts.s3.ap-northeast-2.amazonaws.com/bts_nyu_v2_pytorch_densenet121.zip) |
-| DenseNet161  | 0.885 | 0.978 | 0.994 |  0.110 | 0.066 | 0.392 |   0.142 | 11.533 | 0.047 |   47.0M | [bts_nyu_v2_pytorch_densenet161](https://cogaplex-bts.s3.ap-northeast-2.amazonaws.com/bts_nyu_v2_pytorch_densenet161.zip) |
-
-Note: Modify arguments '--encoder', '--model_name', '--checkpoint_path' and '--pred_path' accordingly.
-
-## Live Demo
-Finally, we attach live 3d demo implementations for both of TensorFlow and Pytorch. \
-For best performance, get correct intrinsic values for your webcam and put them in bts_live_3d.py. \
-Sample usage for PyTorch:
+## Preparation for Training
+### NYU Depvh V2
+Download the dataset we used in this work.
 ```
-$ cd ~/workspace/bts/pytorch
-$ python bts_live_3d.py --model_name bts_nyu_v2_pytorch_densenet161 \
---encoder densenet161_bts \
---checkpoint_path ./models/bts_nyu_v2_pytorch_densenet161/model \
---max_depth 10 \
---input_height 480 \
---input_width 640
+$ cd ~/workspace/srn
+$ python utils/download_from_gdrive.py 1AysroWpfISmm-yRFGBgFTrLy6FjQwvwP ../dataset/nyu_depth_v2/sync.zip
+$ unzip sync.zip
 ```
 
-## Citation
-If you find this work useful for your research, please consider citing our paper:
+Once the dataset is ready, you can train the network using following command.
 ```
-@article{lee2019big,
-  title={From big to small: Multi-scale local planar guidance for monocular depth estimation},
-  author={Lee, Jin Han and Han, Myung-Kyu and Ko, Dong Wook and Suh, Il Hong},
-  journal={arXiv preprint arXiv:1907.10326},
-  year={2019}
-}
+$ cd ~/workspace/srn/pytorch
+$ python srn_main.py arguments_train_nyu.txt
 ```
 
-## License
-Copyright (C) 2019 Jin Han Lee, Myung-Kyu Han, Dong Wook Ko and Il Hong Suh \
-This Software is licensed under GPL-3.0-or-later.
+### KITTI
+You can also train SRN with KITTI dataset by following procedures.
+First, make sure that you have prepared the ground truth depthmaps from [KITTI](http://www.cvlibs.net/download.php?file=data_depth_annotated.zip).
+If you have not, please follow instructions on README.md at root of this repo.
+Then, download and unzip the raw dataset using following commands.
+```
+$ cd ~/workspace/dataset/kitti_dataset
+$ aria2c -x 16 -i ../../srn/utils/kitti_archives_to_download.txt
+$ parallel unzip ::: *.zip
+```
+Finally, we can train our network with
+```
+$ cd ~/workspace/srn/pytorch
+$ python srn_main.py arguments_train_eigen.txt
+```
+
+## Evaluation
+Following command will evaluate the prediction results for NYU Depvh V2.
+```
+$ cd ~/workspace/srn/pytorch
+$ python ../utils/eval_with_pngs.py --pred_path result_srn_nyu_v2_pytorch_densenet161/raw/ --gt_path ../../dataset/nyu_depth_v2/official_splits/test/ --dataset nyu --min_depth_eval 1e-3 --max_depth_eval 10 --eigen_crop
+```
+
+## References
+https://github.com/cleinc/bts

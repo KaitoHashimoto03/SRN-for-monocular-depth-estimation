@@ -35,7 +35,7 @@ import matplotlib.cm
 import threading
 from tqdm import tqdm
 
-from bts4 import BtsModel
+from documents.srn.pytorch.srn import BtsModel
 from bts_dataloader import *
 
 
@@ -120,7 +120,7 @@ else:
     args = parser.parse_args()
 
 if args.mode == 'train' and not args.checkpoint_path:
-    from bts4 import *
+    from documents.bts.pytorch.srn import *
 
 elif args.mode == 'train' and args.checkpoint_path:
     model_dir = os.path.dirname(args.checkpoint_path)
@@ -563,7 +563,7 @@ def main():
 
     if args.checkpoint_path == '':
         model_out_path = args.log_directory + '/' + args.model_name + '/' + model_filename
-        command = 'cp bts4.py ' + model_out_path
+        command = 'cp models/bts_nyu_v2_pytorch_2021_01_02_srn_aspp3to60_enupdated_lstm/bts_nyu_v2_pytorch_2021_01_02_srn_aspp3to60_enupdated_lstm.py ' + model_out_path
         os.system(command)
         aux_out_path = args.log_directory + '/' + args.model_name + '/.'
         command = 'cp bts_main.py ' + aux_out_path

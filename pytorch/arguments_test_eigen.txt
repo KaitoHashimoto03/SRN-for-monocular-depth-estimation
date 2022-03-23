@@ -1,9 +1,9 @@
---encoder densenet161_bts
+--encoder densenet121_bts
 --data_path /data1/hashimoto/dataset/kitti_dataset/
 --dataset kitti
---filenames_file ../train_test_inputs/eigen_test_files_with_gt.txt
---model_name bts_eigen_v2_pytorch_densenet161_12_5
---checkpoint_path ./models/bts_eigen_v2_pytorch_12_5/model-41600-best_abs_rel_0.05850
+--filenames_file /home/hashimoto/documents/bts/train_test_inputs/eigen_test_files_with_gt.txt
+--model_name bts_nyu_v2_pytorch_2021_01_20_srn_dense121
+--checkpoint_path /data1/hashimoto/log_dir/bts_nyu_v2_pytorch_2021_01_20_srn_dense121/model-126000-best_abs_rel_0.07054
 --input_height 352
 --input_width 1216
 --max_depth 80
