@@ -2,6 +2,7 @@
 
 ## output(indoor)
 <img src="./utils/srn_result.png" width="70%">
+
 ## output(outdoor)
 <img src="./utils/srn_kitti.png" width="70%">
 
