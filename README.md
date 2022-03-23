@@ -8,8 +8,10 @@
 ## model
 #### overall
 <img src="./utils/srn_model.png" width="65%">
+
 #### encoder
 <img src="./utils/srn_encoder.png" width="60%">
+
 #### decoder
 <img src="./utils/srn_decoder.png" width="60%">
 
